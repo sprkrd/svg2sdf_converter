@@ -1,27 +1,28 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
-  <model name='pcb'>
+  <model name='{{ name }}'>
     <link name='link_0'>
       <pose frame=''>0 0 0 0 -0 0</pose>
       <inertial>
-        <mass>1</mass>
+        <mass>{{ mass }}</mass>
         <inertia>
-          <ixx>0.166667</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.166667</iyy>
-          <iyz>0</iyz>
-          <izz>0.166667</izz>
+          <ixx>{{ inertia.ixx }}</ixx>
+          <ixy>{{ inertia.ixy }}</ixy>
+          <ixz>{{ inertia.ixz }}</ixz>
+          <iyy>{{ inertia.iyy }}</iyy>
+          <iyz>{{ inertia.iyz }}</iyz>
+          <izz>{{ inertia.izz }}</izz>
         </inertia>
       </inertial>
       <visual name='visual'>
-        <pose frame=''>0 0 -{{ height / 2 }} 0 -0 0</pose>
+        <pose frame=''>0 0 -{{ height / 2 }}asdfsf 0 -0 0</pose>
         <geometry>
           <polyline>
             <height>{{ height }}</height>
             {% for point in path %}
                 <point>{{ point.0 }} {{ point.1 }}</point>
             {% endfor %}
+            <point>{{ path.0.0 }} {{ path.0.1 }}</point>
           </polyline>
         </geometry>
         <material>
@@ -48,6 +49,7 @@
             {% for point in path %}
                 <point>{{ point.0 }} {{ point.1 }}</point>
             {% endfor %}
+            <point>{{ path.0.0 }} {{ path.0.1 }}</point>
           </polyline>
         </geometry>
         <surface>

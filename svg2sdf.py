@@ -11,7 +11,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 unit_magnitude = {"m": 1, "dm": 0.1, "cm": 0.01, "mm": 0.001, "inch": 0.0254}
 number_with_units_re = re.compile(r"([0-9]+)(m|dm|cm|mm)")
 
-tmppath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "templates")
+scrpath = os.path.dirname(os.path.realpath(__file__))
+tmppath = os.path.join(scrpath, "templates")
 
 env = Environment(
     loader=FileSystemLoader(tmppath),
@@ -19,9 +20,36 @@ env = Environment(
 )
 
 
-def default_output_filename(path):
-    filename = os.path.splitext(os.path.basename(path))[0]
-    return filename + ".sdf"
+colors = {}
+
+
+with open(os.path.join(scrpath, "xkcd_colors.txt"), "r") as f:
+    for line in f:
+        if line[0] != "#":
+            name, html_color = line.split("\t")[:2]
+            name = name.replace(" ", "_")
+            r = int(html_color[1:3], 16)/255
+            g = int(html_color[3:5], 16)/255
+            b = int(html_color[5:7], 16)/255
+            colors[name] = (r, g, b)
+
+
+def inertia_moments(path, height, mass):
+    xmin = min(x for x,_ in path)
+    xmax = max(x for x,_ in path)
+    ymin = min(y for _,y in path)
+    ymax = max(y for _,y in path)
+    width = xmax - xmin
+    depth = ymax - ymin
+    inertia = {
+        "ixx": mass * (depth**2 + height**2) / 12,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": mass * (width**2 + height**2) / 12,
+        "iyz": 0.0,
+        "izz": mass * (width**2 + depth**2) / 12,
+    }
+    return inertia
 
 
 def get_length_as_number(length):
@@ -47,12 +75,13 @@ def get_path_as_coordinates(path_str, view_box=None, width=1, height=1):
     path_coord = [(x-mx, y-my) for x, y in path_coord]
     # path_coord = [(x-mx, my-y) for x, y in path_coord]
     # path_coord.reverse()
-    path_coord.append(path_coord[0])
+    # path_coord.append(path_coord[0])
     return path_coord
 
-def main(svg, output=None):
-    output = output or default_output_filename(svg)
+
+def main(svg, mass=1.0, height=0.01):
     assert os.path.isfile(svg)
+    name = os.path.splitext(os.path.basename(svg))[0]
     tree = ET.parse(svg)
     root = tree.getroot()
     width = get_length_as_number(root.attrib["width"])
@@ -62,19 +91,26 @@ def main(svg, output=None):
     path = get_path_as_coordinates(
             root.find("default:g/default:path", namespaces=ns).attrib["d"],
             view_box, width, height)
+    inertia = inertia_moments(path, mass, height)
     tmp = env.get_template("sdftemplate.sdf")
-    out = tmp.render({"path": path, "height": 0.02})
+    context = {
+        "path": path,
+        "height": height,
+        "mass": mass,
+        "name": name,
+        "inertia": inertia,
+    }
+    out = tmp.render(context)
     print(out)
-    # print(width)
-    # print(height)
-    # print(view_box)
-    # print(path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("svg", help="SVG file with a simple shape")
-    parser.add_argument("-o", "--output", help="Output file")
+    parser.add_argument("-m", "--mass", help="Mass of the object", type=float,
+                        default=1.0)
+    parser.add_argument("-a", "--height", help="Height of the object",
+                        type=float, default=0.01)
     args = parser.parse_args()
-    main(args.svg, output=args.output)
+    main(args.svg, mass=args.mass, height=args.height)
 
