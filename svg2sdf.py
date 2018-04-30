@@ -79,7 +79,7 @@ def get_path_as_coordinates(path_str, view_box=None, width=1, height=1):
     return path_coord
 
 
-def main(svg, mass=1.0, height=0.01):
+def main(svg, mass=1.0, thickness=0.01, color="grey"):
     assert os.path.isfile(svg)
     name = os.path.splitext(os.path.basename(svg))[0]
     tree = ET.parse(svg)
@@ -92,13 +92,17 @@ def main(svg, mass=1.0, height=0.01):
             root.find("default:g/default:path", namespaces=ns).attrib["d"],
             view_box, width, height)
     inertia = inertia_moments(path, mass, height)
-    tmp = env.get_template("sdftemplate.sdf")
+    tmp = env.get_template("model.sdf")
+    ambient = tuple(map(lambda x: 0.1*x, colors[color]))
+    diffuse = colors[color]
     context = {
         "path": path,
-        "height": height,
+        "thickness": thickness,
         "mass": mass,
         "name": name,
         "inertia": inertia,
+        "ambient": ambient,
+        "diffuse": diffuse,
     }
     out = tmp.render(context)
     print(out)
@@ -109,8 +113,11 @@ if __name__ == "__main__":
     parser.add_argument("svg", help="SVG file with a simple shape")
     parser.add_argument("-m", "--mass", help="Mass of the object", type=float,
                         default=1.0)
-    parser.add_argument("-a", "--height", help="Height of the object",
+    parser.add_argument("-t", "--thickness", help="Thickness of the extrusion",
                         type=float, default=0.01)
+    parser.add_argument("-c", "--color", help="Color of the object (XKCD id)",
+                        default="grey")
     args = parser.parse_args()
-    main(args.svg, mass=args.mass, height=args.height)
+    main(args.svg, mass=args.mass, thickness=args.thickness,
+         color=args.color)
 

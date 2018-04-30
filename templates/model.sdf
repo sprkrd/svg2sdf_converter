@@ -2,7 +2,7 @@
 <sdf version='1.6'>
   <model name='{{ name }}'>
     <link name='link_0'>
-      <pose frame=''>0 0 0 0 -0 0</pose>
+      <pose frame=''>0 0 0 0 0 0</pose>
       <inertial>
         <mass>{{ mass }}</mass>
         <inertia>
@@ -15,10 +15,10 @@
         </inertia>
       </inertial>
       <visual name='visual'>
-        <pose frame=''>0 0 -{{ height / 2 }}asdfsf 0 -0 0</pose>
+        <pose frame=''>0 0 -{{ thickness / 2 }} 0 -0 0</pose>
         <geometry>
           <polyline>
-            <height>{{ height }}</height>
+            <height>{{ thickness }}</height>
             {% for point in path %}
                 <point>{{ point.0 }} {{ point.1 }}</point>
             {% endfor %}
@@ -31,8 +31,8 @@
             <uri>file://media/materials/scripts/gazebo.material</uri>
             <name>Gazebo/Grey</name>
           </script>
-          <ambient>0.3 0.3 0.3 1</ambient>
-          <diffuse>0.7 0.7 0.7 1</diffuse>
+          <ambient>{{ ambient.0 }} {{ ambient.1 }} {{ ambient.2 }} 1</ambient>
+          <diffuse>{{ diffuse.0 }} {{ diffuse.1 }} {{ diffuse.2 }} 1</diffuse>
           <specular>0.01 0.01 0.01 1</specular>
           <emissive>0 0 0 1</emissive>
         </material>
@@ -42,10 +42,10 @@
       <collision name='collision'>
         <laser_retro>0</laser_retro>
         <max_contacts>10</max_contacts>
-        <pose frame=''>0 0 -{{ height / 2 }} 0 -0 0</pose>
+        <pose frame=''>0 0 -{{ thickness / 2 }} 0 -0 0</pose>
         <geometry>
           <polyline>
-            <height>{{ height }}</height>
+            <height>{{ thickness }}</height>
             {% for point in path %}
                 <point>{{ point.0 }} {{ point.1 }}</point>
             {% endfor %}
@@ -103,3 +103,4 @@
     <allow_auto_disable>1</allow_auto_disable>
   </model>
 </sdf>
+
