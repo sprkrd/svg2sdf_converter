@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import argparse
 import os
 import re
+import shutil
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -70,16 +71,18 @@ def get_path_as_coordinates(path_str, view_box=None, width=1, height=1):
     for dx, dy in path_rel[1:]:
         x, y = path_coord[-1]
         path_coord.append((x + dx*sx, y + dy*sy))
-    mx = sum(x for x,_ in path_coord)/len(path_coord)
-    my = sum(y for _,y in path_coord)/len(path_coord)
-    path_coord = [(x-mx, y-my) for x, y in path_coord]
-    # path_coord = [(x-mx, my-y) for x, y in path_coord]
+    mx = (max(x for x,_ in path_coord) + min(x for x,_ in path_coord))/2
+    my = (max(y for _,y in path_coord) + min(y for _,y in path_coord))/2
+    # mx = sum(x for x,_ in path_coord)/len(path_coord)
+    # my = sum(y for _,y in path_coord)/len(path_coord)
+    # path_coord = [(x-mx, y-my) for x, y in path_coord]
+    path_coord = [(x-mx, my-y) for x, y in path_coord]
     # path_coord.reverse()
     # path_coord.append(path_coord[0])
     return path_coord
 
 
-def main(svg, mass=1.0, thickness=0.01, color="grey"):
+def main(svg, mass=1.0, thickness=0.01, color="grey", out=None):
     assert os.path.isfile(svg)
     name = os.path.splitext(os.path.basename(svg))[0]
     tree = ET.parse(svg)
@@ -92,7 +95,8 @@ def main(svg, mass=1.0, thickness=0.01, color="grey"):
             root.find("default:g/default:path", namespaces=ns).attrib["d"],
             view_box, width, height)
     inertia = inertia_moments(path, mass, height)
-    tmp = env.get_template("model.sdf")
+    tmp_sdf = env.get_template("model.sdf")
+    tmp_config = env.get_template("model.config")
     ambient = tuple(map(lambda x: 0.1*x, colors[color]))
     diffuse = colors[color]
     context = {
@@ -104,8 +108,19 @@ def main(svg, mass=1.0, thickness=0.01, color="grey"):
         "ambient": ambient,
         "diffuse": diffuse,
     }
-    out = tmp.render(context)
-    print(out)
+    if out is None: out = os.path.join(".", name)
+    out_sdf = os.path.join(out, "model.sdf")
+    out_config = os.path.join(out, "model.config")
+    if not os.path.isdir(out):
+        os.makedirs(out)
+    sdf = tmp_sdf.render(context)
+    config = tmp_config.render(context)
+    with open(out_sdf, "w") as f:
+        f.write(sdf)
+        print("Written SDF to " + out_sdf)
+    with open(out_config, "w") as f:
+        f.write(config)
+        print("Written config to " + out_config)
 
 
 if __name__ == "__main__":
@@ -117,7 +132,8 @@ if __name__ == "__main__":
                         type=float, default=0.01)
     parser.add_argument("-c", "--color", help="Color of the object (XKCD id)",
                         default="grey")
+    parser.add_argument("-o", "--out", help="Output directory")
     args = parser.parse_args()
     main(args.svg, mass=args.mass, thickness=args.thickness,
-         color=args.color)
+         color=args.color, out=args.out)
 
